@@ -1,7 +1,17 @@
 import tkinter as tk
-
-with open("occupiedParkings.txt", "r") as f:
-    lines = f.readlines()
+import mysql.connector
+mydb = mysql.connector.connect(
+  host="localhost",
+  user="root",
+  password="Thunderbolt1@",
+  database="parkingsystem"
+)
+mycursor = mydb.cursor()
+mycursor.execute("select * from occupiedparkings")
+occparks = mycursor.fetchall()
+lines = []
+for park in occparks:
+    lines.append(park[0])
 
 w2_occupied_parkings = 0
 w4_occupied_parkings = 0

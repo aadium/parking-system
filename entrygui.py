@@ -1,11 +1,19 @@
 from datetime import datetime
+import mysql.connector
 from roboflow import Roboflow
 import csv
 import random
 import tkinter as tk
 from tkinter import *
-
 import cv2
+
+mydb = mysql.connector.connect(
+  host="localhost",
+  user="root",
+  password="Thunderbolt1@",
+  database="parkingsystem"
+)
+mycursor = mydb.cursor()
 
 # Create the tkinter window
 window = tk.Tk()
@@ -44,7 +52,7 @@ def autofillNumPlate():
     rf = Roboflow(api_key="2vPtNoQmzOKODr6Yy5A1")
     project = rf.workspace("adam-toth-b7suq").project("license-plate-characters-7qltj")
     model = project.version("1").model
-    imagePath = 'testImages/testPlate1.jpg'
+    imagePath = 'testImages/testPlate5.jpg'
     pred_array = (model.predict(imagePath, confidence=50, overlap=30))
     class_array = []
     x_array = []
@@ -143,9 +151,8 @@ def enterInfo():
 def generateParkingSticker():
     def check_available_parking():
         occupied_parkings = []
-        with open("occupiedParkings.txt", "r") as fp:
-            for line in fp:
-                occupied_parkings.append(int(line.strip()))
+        mycursor.execute("select * from occupiedparkings")
+        occupied_parkings = mycursor.fetchall()
 
         while True:
             if vehicleType == 0:
@@ -170,9 +177,10 @@ def generateParkingSticker():
 
         sticker_id = random.randrange(1000000000, 9999999999, 1)
 
-        # Update the occupied parkings file
-        with open("occupiedParkings.txt", "a") as fp:
-            fp.write(str(park_num) + '\n')
+        sql = "INSERT INTO occupiedparkings VALUES (" + str(park_num) + ")"
+        mycursor.execute(sql)
+        mydb.commit()
+        print(mycursor.rowcount, "parking number inserted.")
 
         # Display the sticker details
         sticker_label.config(font=15, text="===============\n" +
@@ -183,11 +191,11 @@ def generateParkingSticker():
                                    ("Handicapped\n" if isHandicapped == 1 else "") +
                                    "===============")
 
-        # Save the parking record to CSV
-        parking_data = [sticker_id, numberPlate, vehicleType, isHandicapped, dtObjectEntry, park_num]
-        with open('parkingRecord.csv', 'a', newline='') as f:
-            writer = csv.writer(f)
-            writer.writerow(parking_data)
+        parking_data_sql = [numberPlate, vehicleType, isHandicapped, dtObjectEntry, park_num, sticker_id]
+        sql = "INSERT INTO parkingrecord VALUES (%s, %s, %s, %s, %s, %s)"
+        mycursor.execute(sql, parking_data_sql)
+        mydb.commit()
+        print(mycursor.rowcount, "record inserted.")
 
     def collect(event):
         window.destroy()

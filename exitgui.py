@@ -3,6 +3,15 @@ import csv
 import tkinter as tk
 from tkinter import ttk
 from tkinter import *
+import mysql.connector
+
+mydb = mysql.connector.connect(
+  host="localhost",
+  user="root",
+  password="Thunderbolt1@",
+  database="parkingsystem"
+)
+mycursor = mydb.cursor()
 
 # Create the tkinter window
 window = tk.Tk()
@@ -30,17 +39,26 @@ tDay = 1750
 tMon = 40000
 
 def getParkingDetails(stickerID):
-    with open("parkingRecord.csv", "r") as f:
-        lines = csv.reader(f)
-        lines = list(lines)
-        lines.pop(0)
-        for row in lines:
-            if (int(row[0]) == stickerID):
-                numberPlate = row[1]
-                vehicleType = int(row[2])
-                isHandicapped = int(row[3])
-                dtEntry = row[4]
-                parkNum = int(row[5])
+    mycursor.execute("select * from parkingrecord")
+    result = mycursor.fetchall()
+
+    userinfo = []
+
+    for x in result:
+        if(result[result.index(x)][5] == str(stickerID)):
+            userinfo.append(x)
+    
+    numberPlate = userinfo[0][0]
+    vehicleType = userinfo[0][1]
+    isHandicapped = userinfo[0][2]
+    dtEntry = userinfo[0][3]
+    parkNum = userinfo[0][4]
+
+    print(numberPlate)
+    print(vehicleType)
+    print(isHandicapped)
+    print(dtEntry)
+    print(parkNum)
     
     return numberPlate, vehicleType, isHandicapped, dtEntry, parkNum
 
@@ -79,19 +97,21 @@ def parkingChargesCalc(dtEnt, dtEx, vehicleType, w2Init, w4Init, tInit, w2Hour, 
     durationParked = (str(monDiff) + ' months, ' + str(dayDiff) + ' days, ' + str(hourDiff) + ' hours')
     return totalCharge, durationParked
 
-def generateBill(numberPlate, vehicleType, dtEnt, dtEx, durationParked, parkCharges):
+def generateBill(numberPlate, vehicleType, isHandicapped, dtEnt, dtEx, durationParked, parkCharges):
 
     bill = []
     bill.append(numberPlate)
     bill.append(vehicleType)
+    bill.append(isHandicapped)
     bill.append(dtEnt)
     bill.append(dtEx)
     bill.append(durationParked)
     bill.append(parkCharges)
 
-    with open('billRecords.csv', 'a', newline='') as f:
-        writer = csv.writer(f)
-        writer.writerow(bill)
+    sql = "INSERT INTO billrecord VALUES (%s, %s, %s, %s, %s, %s, %s)"
+    mycursor.execute(sql, bill)
+    mydb.commit()
+    print(mycursor.rowcount, "record inserted.")
 
     vehicleTypeStr = ""
     if (vehicleType == 0):
@@ -208,21 +228,19 @@ def exitGateProcess():
 
     dtObjectEntry = datetime.strptime(dtEntry, '%Y-%m-%d %H:%M:%S')
     
-    dtExit = '2000,2,25; 23:00' 
+    dtExit = '2000,2,28; 14:35' 
     dtObjectExit = datetime.strptime(dtExit, '%Y,%m,%d; %H:%M')
 
     parkingCharges, durationParked = parkingChargesCalc(
         dtObjectEntry, dtObjectExit, vehicleType, w2Init, w4Init, tInit, w2Hour, w4Hour, tHour, w2Day, w4Day, tDay, w2Mon, w4Mon, tMon
     )
 
-    generateBill(numberPlate, vehicleType, dtObjectEntry, dtObjectExit, durationParked, parkingCharges)
+    generateBill(numberPlate, vehicleType, isHandicapped, dtObjectEntry, dtObjectExit, durationParked, parkingCharges)
 
-    with open("occupiedParkings.txt", "r") as f:
-        lines = f.readlines()
-    with open("occupiedParkings.txt", "w") as f:
-        for line in lines:
-            if int(line.strip("\n")) != parkNum:
-                f.write(line)
+    sql = "DELETE FROM occupiedparkings WHERE parkno = " + str(parkNum)
+    mycursor.execute(sql)
+    mydb.commit()
+    print(mycursor.rowcount, "parking number removed.")
 
 label = tk.Label(window, text="Enter sticker ID:")
 label.pack()
