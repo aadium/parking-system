@@ -1,10 +1,11 @@
-from datetime import datetime, timedelta
+from datetime import datetime
+from roboflow import Roboflow
 import csv
-import re
 import random
 import tkinter as tk
-from tkinter import ttk
 from tkinter import *
+
+import cv2
 
 # Create the tkinter window
 window = tk.Tk()
@@ -31,6 +32,40 @@ tHour = 80
 tDay = 1750
 tMon = 40000
 
+def captureImage():
+    cap = cv2.VideoCapture(0)
+    ret, frame = cap.read()
+    cap.release()
+    image_path = "captured_image.jpg"
+    cv2.imwrite(image_path, frame)
+    return image_path
+
+def autofillNumPlate():
+    rf = Roboflow(api_key="2vPtNoQmzOKODr6Yy5A1")
+    project = rf.workspace("adam-toth-b7suq").project("license-plate-characters-7qltj")
+    model = project.version("1").model
+    imagePath = 'testImages/testPlate1.jpg'
+    pred_array = (model.predict(imagePath, confidence=50, overlap=30))
+    class_array = []
+    x_array = []
+    i = 0
+    while i < len(pred_array):
+        class_array.append(pred_array[i]["class"])
+        x_array.append(pred_array[i]["x"])
+        i+=1
+    for i in range(len(x_array)):
+        for j in range(len(x_array) - i - 1):
+            if x_array[j] > x_array[j + 1]:
+                temp_x = x_array[j]
+                x_array[j] = x_array[j + 1]
+                x_array[j + 1] = temp_x
+
+                temp_class = class_array[j]
+                class_array[j] = class_array[j + 1]
+                class_array[j + 1] = temp_class
+    numPlate = ''.join(class_array)
+    return numPlate
+
 def enterInfo():
     def validate_info():
         # Declare the variables as global
@@ -40,11 +75,6 @@ def enterInfo():
         vehicle_type = vehicleType.get()
         number_plate = numberPlate.get()
         is_handicapped = isHandicapped.get()
-
-        # Validate number plate
-        if not re.match(r'^[A-Za-z]{2}\d{2}[A-Za-z]{2}\d{2,4}$', number_plate):
-            error_label.config(text="Please enter a valid number plate without spaces")
-            return
 
         # Update the global variables
         vehicleType = vehicle_type
@@ -83,7 +113,13 @@ def enterInfo():
     number_plate_label = tk.Label(info_window, font=('Consolas', 20), text="Number Plate:")
     number_plate_label.pack()
 
+    try:
+        number_plate = autofillNumPlate()
+        print('Number plate detected')
+    except:
+        number_plate = ''
     number_plate_entry = tk.Entry(info_window, font=('Consolas', 25), textvariable=numberPlate)
+    number_plate_entry.insert(0, number_plate)
     number_plate_entry.pack()
 
     lbl_blanc2 = tk.Label(info_window, text=' ')

@@ -207,6 +207,7 @@ def exitGateProcess():
     numberPlate, vehicleType, isHandicapped, dtEntry, parkNum = getParkingDetails(stickerID)
 
     dtObjectEntry = datetime.strptime(dtEntry, '%Y-%m-%d %H:%M:%S')
+    
     dtExit = '2000,2,25; 23:00' 
     dtObjectExit = datetime.strptime(dtExit, '%Y,%m,%d; %H:%M')
 
