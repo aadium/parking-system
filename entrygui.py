@@ -7,6 +7,7 @@ import tkinter as tk
 from tkinter import *
 import cv2
 
+# Connect to the MySQL database
 mydb = mysql.connector.connect(
   host="localhost",
   user="root",
@@ -24,7 +25,7 @@ vehicleType = tk.IntVar()
 numberPlate = tk.StringVar()
 isHandicapped = tk.IntVar()
 
-# Constants
+# Constants for parking rates
 w2Init = 5
 w2Hour = 12
 w2Day = 250
@@ -40,6 +41,7 @@ tHour = 80
 tDay = 1750
 tMon = 40000
 
+# Function to capture an image using OpenCV
 def captureImage():
     cap = cv2.VideoCapture(0)
     ret, frame = cap.read()
@@ -48,6 +50,7 @@ def captureImage():
     cv2.imwrite(image_path, frame)
     return image_path
 
+# Function to autofill the number plate using the Roboflow API
 def autofillNumPlate():
     rf = Roboflow(api_key="2vPtNoQmzOKODr6Yy5A1")
     project = rf.workspace("adam-toth-b7suq").project("license-plate-characters-7qltj")
@@ -74,6 +77,7 @@ def autofillNumPlate():
     numPlate = ''.join(class_array)
     return numPlate
 
+# Function to enter vehicle information
 def enterInfo():
     def validate_info():
         # Declare the variables as global
@@ -122,6 +126,7 @@ def enterInfo():
     number_plate_label.pack()
 
     try:
+        # Autofill the number plate using image recognition
         number_plate = autofillNumPlate()
         print('Number plate detected')
     except:
@@ -134,7 +139,9 @@ def enterInfo():
     lbl_blanc2.pack()
 
     # Handicapped Label and Checkbutton
-    handicapped_check = tk.Checkbutton(info_window, font=('Consolas', 15), text="Handicapped?\nClick to select", variable=isHandicapped, indicatoron=False, height=3, width=18)
+    handicapped_check = tk.Checkbutton(info_window, text="Handicapped?\nPress to select", variable=isHandicapped, 
+                                  font=('Consolas', 15), indicatoron=False, 
+                                  selectcolor='dark grey', fg='black')
     handicapped_check.pack()
 
     lbl_blanc3 = tk.Label(info_window, text=' ')
@@ -148,6 +155,7 @@ def enterInfo():
     error_label = tk.Label(info_window, font=15, padx=5, pady=5, fg="red")
     error_label.pack()
 
+# Function to generate the parking sticker
 def generateParkingSticker():
     def check_available_parking():
         occupied_parkings = []
@@ -175,8 +183,8 @@ def generateParkingSticker():
             else:
                 print('No parking space available.')
 
-        sticker_id = random.randrange(1000000000, 9999999999, 1)
-
+        sticker_id = random.randrange(1000000000, 9999999999)
+        # Insert the occupied parking into the database
         sql = "INSERT INTO occupiedparkings VALUES (" + str(park_num) + ")"
         mycursor.execute(sql)
         mydb.commit()
@@ -191,6 +199,7 @@ def generateParkingSticker():
                                    ("Handicapped\n" if isHandicapped == 1 else "") +
                                    "===============")
 
+        # Store the parking record in the database
         parking_data_sql = [numberPlate, vehicleType, isHandicapped, dtObjectEntry, park_num, sticker_id]
         sql = "INSERT INTO parkingrecord VALUES (%s, %s, %s, %s, %s, %s)"
         mycursor.execute(sql, parking_data_sql)
@@ -198,6 +207,7 @@ def generateParkingSticker():
         print(mycursor.rowcount, "record inserted.")
 
     def collect(event):
+        # Close the sticker window
         window.destroy()
     
     # Create a new window for displaying the parking sticker
@@ -211,6 +221,7 @@ def generateParkingSticker():
     # Check available parking and display the sticker
     check_available_parking()
 
+    # Sticker Collect Button
     sticker_collect_btn = tk.Button(sticker_window, text='Collect sticker')
     sticker_collect_btn.pack()
     sticker_collect_btn.bind("<Button-1>", collect)
