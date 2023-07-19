@@ -7,13 +7,13 @@ import tkinter as tk
 from tkinter import *
 import cv2
 
-# Connect to the MySQL database
-mydb = mysql.connector.connect(
-  host="localhost",
-  user="root",
-  password="Thunderbolt1@",
-  database="parkingsystem"
-)
+# Read MySQL connection details from text file
+with open('SQL_details.txt', 'r') as file:
+    connection_info = dict(line.strip().split('=') for line in file)
+
+# Establish MySQL connection
+mydb = mysql.connector.connect(**connection_info)
+
 mycursor = mydb.cursor()
 
 # Create the tkinter window
@@ -41,7 +41,7 @@ tHour = 80
 tDay = 1750
 tMon = 40000
 
-# Function to capture an image using OpenCV
+# Function to capture an image using OpenCV.
 def captureImage():
     cap = cv2.VideoCapture(0)
     ret, frame = cap.read()
@@ -50,12 +50,26 @@ def captureImage():
     cv2.imwrite(image_path, frame)
     return image_path
 
-# Function to autofill the number plate using the Roboflow API
+# Function to autofill the number plate using the Roboflow API. This works only on single-line plates
 def autofillNumPlate():
-    rf = Roboflow(api_key="2vPtNoQmzOKODr6Yy5A1")
-    project = rf.workspace("adam-toth-b7suq").project("license-plate-characters-7qltj")
-    model = project.version("1").model
-    imagePath = 'testImages/testPlate5.jpg'
+    # Here, I am loading the roboflow model details
+    # Read the lines from the roboflow details text file
+    with open('roboflow_numplate_details.txt', 'r') as file:
+        lines = file.readlines()
+
+    # Extract the lines from the list
+    api_key = lines[0].strip()
+    workspace = lines[1].strip()
+    project = lines[2].strip()
+    version = lines[3].strip()
+
+    # Load the roboflow model by entering the values
+    rf = Roboflow(api_key=api_key)
+    project = rf.workspace(workspace).project(project)
+    model = project.version(version).model
+    
+    # Predict the number plate characters using the object detection model
+    imagePath = 'testImages/testPlate5.jpg' # Number plate image
     pred_array = (model.predict(imagePath, confidence=50, overlap=30))
     class_array = []
     x_array = []
@@ -64,6 +78,8 @@ def autofillNumPlate():
         class_array.append(pred_array[i]["class"])
         x_array.append(pred_array[i]["x"])
         i+=1
+    
+    # sort the labels in increasing order with respect to their x coordinates
     for i in range(len(x_array)):
         for j in range(len(x_array) - i - 1):
             if x_array[j] > x_array[j + 1]:
@@ -118,6 +134,7 @@ def enterInfo():
     vehicle_type_truck = tk.Radiobutton(vehicle_type_frame, font=('Consolas', 13), text="Truck", variable=vehicleType, value=2, indicatoron=False, height=3, width=10)
     vehicle_type_truck.pack(side="left")
 
+    # spacing label
     lbl_blanc = tk.Label(info_window, text=' ')
     lbl_blanc.pack()
 
@@ -135,6 +152,7 @@ def enterInfo():
     number_plate_entry.insert(0, number_plate)
     number_plate_entry.pack()
 
+    # spacing label
     lbl_blanc2 = tk.Label(info_window, text=' ')
     lbl_blanc2.pack()
 
@@ -144,6 +162,7 @@ def enterInfo():
                                   selectcolor='dark grey', fg='black')
     handicapped_check.pack()
 
+    # spacing label
     lbl_blanc3 = tk.Label(info_window, text=' ')
     lbl_blanc3.pack()
 
@@ -158,10 +177,14 @@ def enterInfo():
 # Function to generate the parking sticker
 def generateParkingSticker():
     def check_available_parking():
+
+        # This list will contail all the occupied parking numbers
         occupied_parkings = []
+        # Parking numbers are extracted from the database
         mycursor.execute("select * from occupiedparkings")
         occupied_parkings = mycursor.fetchall()
 
+        # This while loop will assign a random unique parking number based on the vehicle type, handicap, and the occupied parkings list
         while True:
             if vehicleType == 0:
                 vehicle_type_str = "2-Wheeler"
@@ -226,11 +249,8 @@ def generateParkingSticker():
     sticker_collect_btn.pack()
     sticker_collect_btn.bind("<Button-1>", collect)
 
-# Entry Date and Time
-dtEntry = '2000,2,25; 06:00'
-
 # Convert entry date and time to datetime object
-dtObjectEntry = datetime.strptime(dtEntry, '%Y,%m,%d; %H:%M')
+dtObjectEntry = datetime.now()
 
 # Entry Info Button
 info_button = tk.Button(window, height=2, width=7, font=("Consolas", 35), text="Push", command=enterInfo)

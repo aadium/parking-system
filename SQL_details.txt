@@ -1,0 +1,4 @@
+host=localhost
+user=root
+password=Thunderbolt1@
+database=parkingsystem
