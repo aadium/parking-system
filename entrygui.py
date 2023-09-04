@@ -69,7 +69,7 @@ def autofillNumPlate():
     model = project.version(version).model
     
     # Predict the number plate characters using the object detection model
-    imagePath = 'testImages/testPlate3.jpg' # Number plate image
+    imagePath = 'testImages/testPlate1.jpg' # Number plate image
     pred_array = (model.predict(imagePath, confidence=50, overlap=30))
     class_array = []
     x_array = []
