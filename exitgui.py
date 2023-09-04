@@ -265,6 +265,7 @@ def exitGateProcess():
 
     dtObjectEntry = datetime.strptime(dtEntry, '%Y-%m-%d %H:%M:%S')  # Convert the entry date and time to a datetime object
     dtObjectExit = datetime.now()  # Get the current date and time as the exit date and time
+    dtObjectExit = dtObjectExit.strftime("%Y-%m-%d %H:%M:%S")
 
     parkingCharges, durationParked = parkingChargesCalc(  # Calculate the parking charges and duration parked
         dtObjectEntry, dtObjectExit, vehicleType, w2Init, w4Init, tInit, w2Hour, w4Hour, tHour, w2Day, w4Day, tDay, w2Mon, w4Mon, tMon

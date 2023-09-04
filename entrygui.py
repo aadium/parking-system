@@ -69,7 +69,7 @@ def autofillNumPlate():
     model = project.version(version).model
     
     # Predict the number plate characters using the object detection model
-    imagePath = 'testImages/testPlate5.jpg' # Number plate image
+    imagePath = 'testImages/testPlate3.jpg' # Number plate image
     pred_array = (model.predict(imagePath, confidence=50, overlap=30))
     class_array = []
     x_array = []
@@ -251,6 +251,7 @@ def generateParkingSticker():
 
 # Convert entry date and time to datetime object
 dtObjectEntry = datetime.now()
+dtObjectEntry = dtObjectEntry.strftime("%Y-%m-%d %H:%M:%S")
 
 # Entry Info Button
 info_button = tk.Button(window, height=2, width=7, font=("Consolas", 35), text="Push", command=enterInfo)
